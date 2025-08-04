@@ -1,21 +1,32 @@
-// main.c - 模拟物联网固件主程序
 #include <stdio.h>
-#include <stdint.h>
-#include "sensor.h"
+
+// 模拟LED状态
+int led_status = 0;
+
+// 模拟传感器读取
+int read_temperature() {
+    return 25; // 25摄氏度
+}
+
+int read_humidity() {
+    return 40; // 40%
+}
+
+void toggle_led() {
+    led_status = !led_status;
+    printf("LED is now %s\n", led_status ? "ON" : "OFF");
+}
 
 int main(void) {
-   
-    printf("设备启动...\n");
-
+    printf("固件启动...\n");
     
-    init_sensor();
-
-   
+    // 模拟固件主循环
     for (int i = 0; i < 5; i++) {
-        uint16_t value = read_sensor();
-        printf("第 %d 次读取，传感器值为: %d\n", i + 1, value);
+        toggle_led();
+        printf("读取传感器：温度 %d°C，湿度 %d%%\n", read_temperature(), read_humidity());
+        printf("上传数据中...\n");
     }
 
-    printf("固件运行完成，准备关机...\n");
+    printf("固件运行结束。\n");
     return 0;
 }
