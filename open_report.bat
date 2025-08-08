@@ -1,0 +1,3 @@
+@echo off
+echo Opening JaCoCo coverage report...
+start "" "build\coverage-report\html\index.html"

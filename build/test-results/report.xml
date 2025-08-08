@@ -1,0 +1,2 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testsuite name="FirmwareUnitTest" tests="1" failures="0" errors="0"><testcase classname="FirmwareTest" name="test_run_firmware" /></testsuite>

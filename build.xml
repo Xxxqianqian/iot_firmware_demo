@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="IoT_Firmware_Test" default="test" basedir=".">
+
+    <property name="src.dir" value="src"/>
+    <property name="build.dir" value="bin"/>
+    <property name="report.dir" value="build/test-results"/>
+
+    <target name="init">
+        <mkdir dir="${build.dir}"/>
+        <mkdir dir="${report.dir}"/>
+    </target>
+
+    <target name="compile" depends="init">
+        <exec executable="arm-none-eabi-gcc" failonerror="true">
+            <arg line="-mcpu=cortex-m3 -mthumb -nostdlib -Wall -fno-exceptions -fno-unwind-tables -fno-asynchronous-unwind-tables -ffunction-sections -fdata-sections -c ${src.dir}/test_main.c -o ${build.dir}/test_main.o"/>
+        </exec>
+        <exec executable="arm-none-eabi-gcc" failonerror="true">
+            <arg line="-mcpu=cortex-m3 -mthumb -nostdlib -Wall -fno-exceptions -fno-unwind-tables -fno-asynchronous-unwind-tables -ffunction-sections -fdata-sections -c ${src.dir}/syscalls.c -o ${build.dir}/syscalls.o"/>
+        </exec>
+    </target>
+
+    <target name="link" depends="compile">
+        <exec executable="arm-none-eabi-gcc" failonerror="true">
+            <arg line="${build.dir}/test_main.o ${build.dir}/syscalls.o -DUNIT_TEST -T linker.ld -Wl,--gc-sections -o ${build.dir}/unit_test.elf"/>
+        </exec>
+    </target>
+
+    <target name="test" depends="link">
+       
+        <exec executable="python" failonerror="true">
+            <arg value="simulated_device/run_device.py"/>
+        </exec>
+        
+        <copy file="simulated_device/report.xml" todir="${report.dir}"/>
+    </target>
+
+</project>
