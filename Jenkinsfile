@@ -7,42 +7,46 @@ pipeline {
     }
 
     stages {
+
         stage('Clone Code') {
             steps {
                 echo 'Cloning code from GitHub...'
-                git branch: 'main', credentialsId: 'Xxxqianqian', url: 'https://github.com/Xxxqianqian/iot_firmware_demo.git'
+                git branch: 'main', url: 'https://github.com/Xxxqianqian/iot_firmware_demo.git'
             }
         }
 
-        stage('Build') {
+        stage('Build Firmware') {
             steps {
-                echo 'Starting build process...'
+                echo 'Building firmware...'
                 bat 'build.bat'
             }
         }
 
         stage('Run Tests') {
             steps {
-                echo 'Running JUnit tests...'
-                bat 'run_tests.bat'  // 你可以自己写一个 run_tests.bat 执行测试
+                echo 'Running tests...'
+                bat 'make test'
             }
         }
 
         stage('Archive Firmware') {
             steps {
-                echo 'Archiving firmware binary...'
-                archiveArtifacts artifacts: 'bin/firmware.bin', fingerprint: true
+                echo 'Saving firmware artifact...'
+                archiveArtifacts artifacts: 'firmware.bin', fingerprint: true
             }
         }
+
     }
 
     post {
         success {
             echo 'Build and tests completed successfully.'
         }
+
         failure {
             echo 'Build or tests failed. Check logs.'
         }
+
         always {
             echo "Build finished at: ${new Date()}"
         }
