@@ -14,6 +14,7 @@
         <exec executable="arm-none-eabi-gcc" failonerror="true">
             <arg line="-mcpu=cortex-m3 -mthumb -nostdlib -Wall -fno-exceptions -fno-unwind-tables -fno-asynchronous-unwind-tables -ffunction-sections -fdata-sections -c ${src.dir}/test_main.c -o ${build.dir}/test_main.o"/>
         </exec>
+
         <exec executable="arm-none-eabi-gcc" failonerror="true">
             <arg line="-mcpu=cortex-m3 -mthumb -nostdlib -Wall -fno-exceptions -fno-unwind-tables -fno-asynchronous-unwind-tables -ffunction-sections -fdata-sections -c ${src.dir}/syscalls.c -o ${build.dir}/syscalls.o"/>
         </exec>
@@ -26,12 +27,15 @@
     </target>
 
     <target name="test" depends="link">
-       
-        <exec executable="python" failonerror="true">
+
+        <!-- 运行 Python 模拟设备 -->
+        <exec executable="C:\Users\31707\AppData\Local\Programs\Python\Python313\python.exe" failonerror="true">
             <arg value="simulated_device/run_device.py"/>
         </exec>
-        
+
+        <!-- 复制测试报告 -->
         <copy file="simulated_device/report.xml" todir="${report.dir}"/>
+
     </target>
 
 </project>
