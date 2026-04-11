@@ -4,7 +4,7 @@
     <property name="src.dir" value="src"/>
     <property name="build.dir" value="bin"/>
     <property name="report.dir" value="build/test-results"/>
-    <property name="python.exec" value="C:\Users\31707\AppData\Local\Programs\Python\Python313\python.exe"/>
+    <property name="python.exec" value="python3"/>
 
     <target name="clean">
         <echo>Cleaning build directory...</echo>
