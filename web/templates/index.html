@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IoT 固件自动化控制台 - 专业版</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    
+    <style>
+        body { background-color: #f0f2f5; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .dashboard-card { border: none; border-radius: 12px; transition: transform 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        
+        /* 终端风格日志区域 */
+        #log_area { 
+            background: #1e1e1e; 
+            color: #00ff00; 
+            padding: 15px; 
+            border-radius: 8px; 
+            height: 550px; 
+            overflow-y: auto; 
+            font-family: 'Consolas', 'Monaco', monospace; 
+            font-size: 0.85rem;
+            line-height: 1.5;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+        }
+
+        /* 进度条美化 */
+        .progress { height: 12px; border-radius: 6px; background-color: #e9ecef; }
+        .progress-bar-animated { transition: width 0.4s ease; }
+
+        /* 构建历史列表项 */
+        .history-item { font-size: 0.9rem; border-left: 4px solid #dee2e6; }
+        .history-success { border-left-color: #198754; }
+        .history-failure { border-left-color: #dc3545; }
+        .history-building { border-left-color: #0d6efd; }
+
+        .status-building { color: #0d6efd; animation: pulse 1s infinite; font-weight: bold; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        .btn-action { font-weight: 600; border-radius: 8px; }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-dark bg-dark mb-4 shadow">
+    <div class="container-fluid">
+        <span class="navbar-brand mb-0 h1"><i class="fas fa-microchip me-2"></i>IoT 固件 CI/CD 控制面板</span>
+    </div>
+</nav>
+
+<div class="container-fluid">
+    <div class="row g-4">
+        <div class="col-lg-4">
+            
+            <div class="card dashboard-card mb-4">
+                <div class="card-header bg-white fw-bold">固件状态分析</div>
+                <div class="card-body text-center p-0">
+                    <div id="size-gauge" style="height: 220px;"></div>
+                    <div class="pb-3">
+                        <p class="text-muted small mb-0">当前固件</p>
+                        <strong id="firmware_name">--</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card dashboard-card mb-4">
+                <div class="card-header bg-white fw-bold">流水线控制</div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted small">构建进度</span>
+                            <span id="progress_label" class="fw-bold small">0%</span>
+                        </div>
+                        <div class="progress">
+                            <div id="build_progress" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button id="btn-build" class="btn btn-success btn-action py-2" onclick="triggerBuild()">
+                            <i class="fas fa-hammer me-2"></i>触发构建任务
+                        </button>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <button class="btn btn-outline-primary w-100 btn-action" onclick="location.href='/download'">
+                                    <i class="fas fa-download me-1"></i>下载
+                                </button>
+                            </div>
+                            <div class="col-6">
+                                <button id="btn-run" class="btn btn-warning w-100 btn-action text-white" onclick="runFirmware()">
+                                    <i class="fas fa-play me-1"></i>运行
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <hr>
+                    <div id="status_msg" class="text-center small py-1 text-muted">
+                        <i class="fas fa-info-circle me-1"></i>等待指令
+                    </div>
+                </div>
+            </div>
+
+            <div class="card dashboard-card">
+                <div class="card-header bg-white fw-bold d-flex justify-content-between align-items-center">
+                    <span>最近构建历史</span>
+                    <button class="btn btn-link btn-sm p-0 text-decoration-none" onclick="fetchHistory()">刷新</button>
+                </div>
+                <div class="list-group list-group-flush" id="history_list" style="max-height: 250px; overflow-y: auto;">
+                    <div class="text-center py-4 text-muted small">加载中...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="card dashboard-card h-100">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                    <span class="fw-bold"><i class="fas fa-terminal me-2 text-dark"></i>控制台输出日志</span>
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-outline-secondary" onclick="logArea.innerText=''">清空</button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <pre id="log_area">Waiting for connection to backend...</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const logArea = document.getElementById('log_area');
+    const statusMsg = document.getElementById('status_msg');
+    const btnBuild = document.getElementById('btn-build');
+    const btnRun = document.getElementById('btn-run');
+    const progressBar = document.getElementById('build_progress');
+    const progressLabel = document.getElementById('progress_label');
+
+    // 初始化 ECharts
+    let gaugeChart = echarts.init(document.getElementById('size-gauge'));
+    let gaugeOption = {
+        series: [{
+            type: 'gauge',
+            radius: '95%',
+            progress: { show: true, width: 8 },
+            axisLine: { lineStyle: { width: 8 } },
+            axisTick: { show: false },
+            splitLine: { show: false },
+            anchor: { show: false },
+            title: { show: false },
+            detail: { valueAnimation: true, fontSize: 16, offsetCenter: [0, '70%'], formatter: '{value} B' },
+            data: [{ value: 0 }]
+        }]
+    };
+    gaugeChart.setOption(gaugeOption);
+
+    // 页面加载时拉取一次历史记录
+    window.onload = () => {
+        fetchHistory();
+        fetchData(); 
+    };
+
+    function updateProgressBar(percent, status = 'primary') {
+        progressBar.style.width = percent + '%';
+        progressLabel.innerText = percent + '%';
+        progressBar.className = `progress-bar progress-bar-striped progress-bar-animated bg-${status}`;
+    }
+
+    function triggerBuild() {
+        btnBuild.disabled = true;
+        btnRun.disabled = true;
+        logArea.innerText = ">>> [SYSTEM] 正在向远程 Jenkins 服务器发送指令...\n";
+        statusMsg.innerHTML = '<span class="status-building">正在排队...</span>';
+        updateProgressBar(10, 'primary');
+
+        fetch('/build', { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                if (data.next_build_number) {
+                    pollBuildStatus(data.next_build_number);
+                }
+            })
+            .catch(err => {
+                statusMsg.innerHTML = '<span class="text-danger">连接失败</span>';
+                updateProgressBar(100, 'danger');
+                btnBuild.disabled = false;
+            });
+    }
+
+    function pollBuildStatus(buildNum) {
+        let fakeProgress = 10;
+        const timer = setInterval(() => {
+            fetch('/status/' + buildNum)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.building) {
+                        // 模拟进度条增加（因为Jenkins API不提供百分比，我们模拟涨到90%）
+                        if (fakeProgress < 90) fakeProgress += 2;
+                        updateProgressBar(fakeProgress, 'primary');
+                        statusMsg.innerHTML = `<span class="status-building">正在执行构建 #${buildNum}...</span>`;
+                    } else if (data.result) {
+                        clearInterval(timer);
+                        btnBuild.disabled = false;
+                        if (data.result === 'SUCCESS') {
+                            updateProgressBar(100, 'success');
+                            statusMsg.innerHTML = '<span class="text-success fw-bold">✅ 构建成功</span>';
+                            fetchData(); // 刷新数据
+                            fetchHistory(); // 刷新历史记录
+                        } else {
+                            updateProgressBar(100, 'danger');
+                            statusMsg.innerHTML = `<span class="text-danger">❌ 构建失败 (${data.result})</span>`;
+                            fetchHistory();
+                        }
+                    }
+                });
+        }, 2000);
+    }
+
+    function fetchData() {
+        fetch('/get_latest?t=' + new Date().getTime())
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('firmware_name').innerText = data.firmware.name;
+                gaugeChart.setOption({ series: [{ data: [{ value: data.firmware.size }] }] });
+                logArea.innerText = data.logs;
+                logArea.scrollTop = logArea.scrollHeight;
+                if (data.firmware.size > 0) btnRun.disabled = false;
+            });
+    }
+
+    function fetchHistory() {
+        fetch('/history')
+            .then(res => res.json())
+            .then(data => {
+                const historyList = document.getElementById('history_list');
+                if (data.length === 0) {
+                    historyList.innerHTML = '<div class="text-center py-3 text-muted">暂无历史记录</div>';
+                    return;
+                }
+                historyList.innerHTML = data.map(item => {
+                    const statusClass = item.result === 'SUCCESS' ? 'history-success' : (item.result === 'BUILDING' ? 'history-building' : 'history-failure');
+                    const badgeClass = item.result === 'SUCCESS' ? 'bg-success' : (item.result === 'BUILDING' ? 'bg-primary' : 'bg-danger');
+                    return `
+                        <div class="list-group-item history-item ${statusClass} d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="fw-bold">Build #${item.number}</div>
+                                <small class="text-muted">${item.time}</small>
+                            </div>
+                            <span class="badge ${badgeClass}">${item.result}</span>
+                        </div>
+                    `;
+                }).join('');
+            });
+    }
+
+    function runFirmware() {
+        logArea.innerText += "\n>>> [EMULATOR] 正在初始化虚拟硬件环境...\n";
+        fetch('/run')
+            .then(res => res.text())
+            .then(data => { 
+                logArea.innerText += data + "\n";
+                logArea.scrollTop = logArea.scrollHeight;
+            });
+    }
+
+    window.addEventListener('resize', () => gaugeChart.resize());
+</script>
+</body>
+</html>

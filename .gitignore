@@ -1,9 +1,14 @@
-### IntelliJ IDEA ###
+### ===== 通用系统文件 =====
+.DS_Store
+Thumbs.db
+
+### ===== IDE 配置 =====
+# IntelliJ IDEA
 out/
 !**/src/main/**/out/
 !**/src/test/**/out/
 
-### Eclipse ###
+# Eclipse
 .apt_generated
 .classpath
 .factorypath
@@ -15,15 +20,45 @@ bin/
 !**/src/main/**/bin/
 !**/src/test/**/bin/
 
-### NetBeans ###
+# NetBeans
 /nbproject/private/
 /nbbuild/
 /dist/
 /nbdist/
 /.nb-gradle/
 
-### VS Code ###
+# VS Code
 .vscode/
 
-### Mac OS ###
-.DS_Store
+###  构建产物
+build/
+target/
+dist/
+
+### 测试与覆盖率
+test-results/
+coverage/
+*.xml
+
+### 日志 
+*.log
+
+###  Docker 
+*.tar
+*.img
+
+###  前端
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+### Jenkins 
+.jenkins/
+
+### Python
+__pycache__/
+*.pyc
+
+### 临时文件 
+*.tmp
+*.swp
