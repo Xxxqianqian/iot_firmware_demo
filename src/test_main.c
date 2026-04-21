@@ -6,7 +6,7 @@ int add(int a, int b);
 
 int main() {
     int result = add(2, 3);
-    if (result == 7) {
+    if (result == 5) {
         printf("add() test passed.\n");
         return 0;  // 0表示测试通过
     } else {
